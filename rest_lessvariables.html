@@ -1,0 +1,1491 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 900px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 900px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="0">0</option>
+                                
+                                    <option value="1">1</option>
+                                
+                                    <option value="30">30</option>
+                                
+                                    <option value="32">32</option>
+                                
+                                    <option value="34">34</option>
+                                
+                                    <option value="36">36</option>
+                                
+                                    <option value="2">2</option>
+                                
+                                    <option value="4">4</option>
+                                
+                                    <option value="6">6</option>
+                                
+                                    <option value="8">8</option>
+                                
+                                    <option value="10">10</option>
+                                
+                                    <option value="12">12</option>
+                                
+                                    <option value="14">14</option>
+                                
+                                    <option value="3">3</option>
+                                
+                                    <option value="5">5</option>
+                                
+                                    <option value="7">7</option>
+                                
+                                    <option value="9">9</option>
+                                
+                                    <option value="11">11</option>
+                                
+                                    <option value="13">13</option>
+                                
+                                    <option value="15">15</option>
+                                
+                                    <option value="17">17</option>
+                                
+                                    <option value="16">16</option>
+                                
+                                    <option value="18">18</option>
+                                
+                                    <option value="20">20</option>
+                                
+                                    <option value="22">22</option>
+                                
+                                    <option value="24">24</option>
+                                
+                                    <option value="26">26</option>
+                                
+                                    <option value="28">28</option>
+                                
+                                    <option value="19">19</option>
+                                
+                                    <option value="21">21</option>
+                                
+                                    <option value="23">23</option>
+                                
+                                    <option value="25">25</option>
+                                
+                                    <option value="27">27</option>
+                                
+                                    <option value="29">29</option>
+                                
+                                    <option value="31">31</option>
+                                
+                                    <option value="33">33</option>
+                                
+                                    <option value="35">35</option>
+                                
+                                    <option value="37">37</option>
+                                
+                                    <option value="38">38</option>
+                                
+                                    <option value="39">39</option>
+                                
+                                    <option value="65">65</option>
+                                
+                                    <option value="67">67</option>
+                                
+                                    <option value="69">69</option>
+                                
+                                    <option value="40">40</option>
+                                
+                                    <option value="42">42</option>
+                                
+                                    <option value="44">44</option>
+                                
+                                    <option value="46">46</option>
+                                
+                                    <option value="48">48</option>
+                                
+                                    <option value="50">50</option>
+                                
+                                    <option value="52">52</option>
+                                
+                                    <option value="54">54</option>
+                                
+                                    <option value="56">56</option>
+                                
+                                    <option value="58">58</option>
+                                
+                                    <option value="60">60</option>
+                                
+                                    <option value="41">41</option>
+                                
+                                    <option value="43">43</option>
+                                
+                                    <option value="45">45</option>
+                                
+                                    <option value="47">47</option>
+                                
+                                    <option value="49">49</option>
+                                
+                                    <option value="51">51</option>
+                                
+                                    <option value="53">53</option>
+                                
+                                    <option value="55">55</option>
+                                
+                                    <option value="57">57</option>
+                                
+                                    <option value="59">59</option>
+                                
+                                    <option value="61">61</option>
+                                
+                                    <option value="63">63</option>
+                                
+                                    <option value="62">62</option>
+                                
+                                    <option value="64">64</option>
+                                
+                                    <option value="66">66</option>
+                                
+                                    <option value="68">68</option>
+                                
+                                    <option value="70">70</option>
+                                
+                                    <option value="71">71</option>
+                                
+                                    <option value="72">72</option>
+                                
+                                    <option value="76">76</option>
+                                
+                                    <option value="78">78</option>
+                                
+                                    <option value="80">80</option>
+                                
+                                    <option value="82">82</option>
+                                
+                                    <option value="84">84</option>
+                                
+                                    <option value="73">73</option>
+                                
+                                    <option value="74">74</option>
+                                
+                                    <option value="75">75</option>
+                                
+                                    <option value="77">77</option>
+                                
+                                    <option value="79">79</option>
+                                
+                                    <option value="81">81</option>
+                                
+                                    <option value="83">83</option>
+                                
+                                    <option value="85">85</option>
+                                
+                                    <option value="86">86</option>
+                                
+                                    <option value="87">87</option>
+                                
+                                    <option value="155">155</option>
+                                
+                                    <option value="157">157</option>
+                                
+                                    <option value="159">159</option>
+                                
+                                    <option value="88">88</option>
+                                
+                                    <option value="90">90</option>
+                                
+                                    <option value="105">105</option>
+                                
+                                    <option value="89">89</option>
+                                
+                                    <option value="91">91</option>
+                                
+                                    <option value="93">93</option>
+                                
+                                    <option value="95">95</option>
+                                
+                                    <option value="97">97</option>
+                                
+                                    <option value="99">99</option>
+                                
+                                    <option value="101">101</option>
+                                
+                                    <option value="103">103</option>
+                                
+                                    <option value="92">92</option>
+                                
+                                    <option value="94">94</option>
+                                
+                                    <option value="96">96</option>
+                                
+                                    <option value="98">98</option>
+                                
+                                    <option value="100">100</option>
+                                
+                                    <option value="102">102</option>
+                                
+                                    <option value="104">104</option>
+                                
+                                    <option value="106">106</option>
+                                
+                                    <option value="107">107</option>
+                                
+                                    <option value="109">109</option>
+                                
+                                    <option value="111">111</option>
+                                
+                                    <option value="113">113</option>
+                                
+                                    <option value="115">115</option>
+                                
+                                    <option value="117">117</option>
+                                
+                                    <option value="119">119</option>
+                                
+                                    <option value="121">121</option>
+                                
+                                    <option value="123">123</option>
+                                
+                                    <option value="125">125</option>
+                                
+                                    <option value="127">127</option>
+                                
+                                    <option value="129">129</option>
+                                
+                                    <option value="131">131</option>
+                                
+                                    <option value="133">133</option>
+                                
+                                    <option value="135">135</option>
+                                
+                                    <option value="137">137</option>
+                                
+                                    <option value="139">139</option>
+                                
+                                    <option value="141">141</option>
+                                
+                                    <option value="143">143</option>
+                                
+                                    <option value="145">145</option>
+                                
+                                    <option value="147">147</option>
+                                
+                                    <option value="149">149</option>
+                                
+                                    <option value="151">151</option>
+                                
+                                    <option value="153">153</option>
+                                
+                                    <option value="108">108</option>
+                                
+                                    <option value="110">110</option>
+                                
+                                    <option value="112">112</option>
+                                
+                                    <option value="114">114</option>
+                                
+                                    <option value="116">116</option>
+                                
+                                    <option value="118">118</option>
+                                
+                                    <option value="120">120</option>
+                                
+                                    <option value="122">122</option>
+                                
+                                    <option value="124">124</option>
+                                
+                                    <option value="126">126</option>
+                                
+                                    <option value="128">128</option>
+                                
+                                    <option value="130">130</option>
+                                
+                                    <option value="132">132</option>
+                                
+                                    <option value="134">134</option>
+                                
+                                    <option value="136">136</option>
+                                
+                                    <option value="138">138</option>
+                                
+                                    <option value="140">140</option>
+                                
+                                    <option value="142">142</option>
+                                
+                                    <option value="144">144</option>
+                                
+                                    <option value="146">146</option>
+                                
+                                    <option value="148">148</option>
+                                
+                                    <option value="150">150</option>
+                                
+                                    <option value="152">152</option>
+                                
+                                    <option value="154">154</option>
+                                
+                                    <option value="156">156</option>
+                                
+                                    <option value="158">158</option>
+                                
+                                    <option value="160">160</option>
+                                
+                                    <option value="161">161</option>
+                                
+                                    <option value="162">162</option>
+                                
+                                    <option value="254">254</option>
+                                
+                                    <option value="256">256</option>
+                                
+                                    <option value="258">258</option>
+                                
+                                    <option value="260">260</option>
+                                
+                                    <option value="262">262</option>
+                                
+                                    <option value="264">264</option>
+                                
+                                    <option value="163">163</option>
+                                
+                                    <option value="165">165</option>
+                                
+                                    <option value="167">167</option>
+                                
+                                    <option value="169">169</option>
+                                
+                                    <option value="171">171</option>
+                                
+                                    <option value="173">173</option>
+                                
+                                    <option value="175">175</option>
+                                
+                                    <option value="177">177</option>
+                                
+                                    <option value="179">179</option>
+                                
+                                    <option value="181">181</option>
+                                
+                                    <option value="183">183</option>
+                                
+                                    <option value="185">185</option>
+                                
+                                    <option value="187">187</option>
+                                
+                                    <option value="194">194</option>
+                                
+                                    <option value="212">212</option>
+                                
+                                    <option value="244">244</option>
+                                
+                                    <option value="164">164</option>
+                                
+                                    <option value="166">166</option>
+                                
+                                    <option value="168">168</option>
+                                
+                                    <option value="170">170</option>
+                                
+                                    <option value="172">172</option>
+                                
+                                    <option value="174">174</option>
+                                
+                                    <option value="176">176</option>
+                                
+                                    <option value="178">178</option>
+                                
+                                    <option value="180">180</option>
+                                
+                                    <option value="182">182</option>
+                                
+                                    <option value="184">184</option>
+                                
+                                    <option value="186">186</option>
+                                
+                                    <option value="188">188</option>
+                                
+                                    <option value="190">190</option>
+                                
+                                    <option value="192">192</option>
+                                
+                                    <option value="189">189</option>
+                                
+                                    <option value="191">191</option>
+                                
+                                    <option value="193">193</option>
+                                
+                                    <option value="195">195</option>
+                                
+                                    <option value="197">197</option>
+                                
+                                    <option value="199">199</option>
+                                
+                                    <option value="201">201</option>
+                                
+                                    <option value="203">203</option>
+                                
+                                    <option value="205">205</option>
+                                
+                                    <option value="196">196</option>
+                                
+                                    <option value="198">198</option>
+                                
+                                    <option value="200">200</option>
+                                
+                                    <option value="202">202</option>
+                                
+                                    <option value="204">204</option>
+                                
+                                    <option value="206">206</option>
+                                
+                                    <option value="208">208</option>
+                                
+                                    <option value="210">210</option>
+                                
+                                    <option value="207">207</option>
+                                
+                                    <option value="209">209</option>
+                                
+                                    <option value="211">211</option>
+                                
+                                    <option value="213">213</option>
+                                
+                                    <option value="215">215</option>
+                                
+                                    <option value="217">217</option>
+                                
+                                    <option value="219">219</option>
+                                
+                                    <option value="221">221</option>
+                                
+                                    <option value="223">223</option>
+                                
+                                    <option value="225">225</option>
+                                
+                                    <option value="227">227</option>
+                                
+                                    <option value="229">229</option>
+                                
+                                    <option value="231">231</option>
+                                
+                                    <option value="233">233</option>
+                                
+                                    <option value="235">235</option>
+                                
+                                    <option value="237">237</option>
+                                
+                                    <option value="214">214</option>
+                                
+                                    <option value="216">216</option>
+                                
+                                    <option value="218">218</option>
+                                
+                                    <option value="220">220</option>
+                                
+                                    <option value="222">222</option>
+                                
+                                    <option value="224">224</option>
+                                
+                                    <option value="226">226</option>
+                                
+                                    <option value="228">228</option>
+                                
+                                    <option value="230">230</option>
+                                
+                                    <option value="232">232</option>
+                                
+                                    <option value="234">234</option>
+                                
+                                    <option value="236">236</option>
+                                
+                                    <option value="238">238</option>
+                                
+                                    <option value="240">240</option>
+                                
+                                    <option value="242">242</option>
+                                
+                                    <option value="239">239</option>
+                                
+                                    <option value="241">241</option>
+                                
+                                    <option value="243">243</option>
+                                
+                                    <option value="245">245</option>
+                                
+                                    <option value="248">248</option>
+                                
+                                    <option value="250">250</option>
+                                
+                                    <option value="252">252</option>
+                                
+                                    <option value="246">246</option>
+                                
+                                    <option value="247">247</option>
+                                
+                                    <option value="249">249</option>
+                                
+                                    <option value="251">251</option>
+                                
+                                    <option value="253">253</option>
+                                
+                                    <option value="255">255</option>
+                                
+                                    <option value="257">257</option>
+                                
+                                    <option value="259">259</option>
+                                
+                                    <option value="261">261</option>
+                                
+                                    <option value="263">263</option>
+                                
+                                    <option value="265">265</option>
+                                
+                                    <option value="266">266</option>
+                                
+                                    <option value="267">267</option>
+                                
+                                    <option value="274">274</option>
+                                
+                                    <option value="276">276</option>
+                                
+                                    <option value="278">278</option>
+                                
+                                    <option value="280">280</option>
+                                
+                                    <option value="268">268</option>
+                                
+                                    <option value="271">271</option>
+                                
+                                    <option value="269">269</option>
+                                
+                                    <option value="270">270</option>
+                                
+                                    <option value="272">272</option>
+                                
+                                    <option value="273">273</option>
+                                
+                                    <option value="275">275</option>
+                                
+                                    <option value="277">277</option>
+                                
+                                    <option value="279">279</option>
+                                
+                                    <option value="281">281</option>
+                                
+                                    <option value="282">282</option>
+                                
+                                    <option value="283">283</option>
+                                
+                                    <option value="302">302</option>
+                                
+                                    <option value="304">304</option>
+                                
+                                    <option value="306">306</option>
+                                
+                                    <option value="308">308</option>
+                                
+                                    <option value="310">310</option>
+                                
+                                    <option value="284">284</option>
+                                
+                                    <option value="285">285</option>
+                                
+                                    <option value="287">287</option>
+                                
+                                    <option value="289">289</option>
+                                
+                                    <option value="291">291</option>
+                                
+                                    <option value="293">293</option>
+                                
+                                    <option value="286">286</option>
+                                
+                                    <option value="288">288</option>
+                                
+                                    <option value="290">290</option>
+                                
+                                    <option value="292">292</option>
+                                
+                                    <option value="294">294</option>
+                                
+                                    <option value="296">296</option>
+                                
+                                    <option value="298">298</option>
+                                
+                                    <option value="300">300</option>
+                                
+                                    <option value="295">295</option>
+                                
+                                    <option value="297">297</option>
+                                
+                                    <option value="299">299</option>
+                                
+                                    <option value="301">301</option>
+                                
+                                    <option value="303">303</option>
+                                
+                                    <option value="305">305</option>
+                                
+                                    <option value="307">307</option>
+                                
+                                    <option value="309">309</option>
+                                
+                                    <option value="311">311</option>
+                                
+                                    <option value="312">312</option>
+                                
+                                    <option value="313">313</option>
+                                
+                                    <option value="352">352</option>
+                                
+                                    <option value="354">354</option>
+                                
+                                    <option value="356">356</option>
+                                
+                                    <option value="358">358</option>
+                                
+                                    <option value="360">360</option>
+                                
+                                    <option value="362">362</option>
+                                
+                                    <option value="364">364</option>
+                                
+                                    <option value="314">314</option>
+                                
+                                    <option value="339">339</option>
+                                
+                                    <option value="345">345</option>
+                                
+                                    <option value="349">349</option>
+                                
+                                    <option value="315">315</option>
+                                
+                                    <option value="317">317</option>
+                                
+                                    <option value="319">319</option>
+                                
+                                    <option value="321">321</option>
+                                
+                                    <option value="323">323</option>
+                                
+                                    <option value="325">325</option>
+                                
+                                    <option value="327">327</option>
+                                
+                                    <option value="329">329</option>
+                                
+                                    <option value="316">316</option>
+                                
+                                    <option value="318">318</option>
+                                
+                                    <option value="320">320</option>
+                                
+                                    <option value="322">322</option>
+                                
+                                    <option value="324">324</option>
+                                
+                                    <option value="326">326</option>
+                                
+                                    <option value="328">328</option>
+                                
+                                    <option value="330">330</option>
+                                
+                                    <option value="331">331</option>
+                                
+                                    <option value="333">333</option>
+                                
+                                    <option value="335">335</option>
+                                
+                                    <option value="337">337</option>
+                                
+                                    <option value="332">332</option>
+                                
+                                    <option value="334">334</option>
+                                
+                                    <option value="336">336</option>
+                                
+                                    <option value="338">338</option>
+                                
+                                    <option value="340">340</option>
+                                
+                                    <option value="341">341</option>
+                                
+                                    <option value="343">343</option>
+                                
+                                    <option value="342">342</option>
+                                
+                                    <option value="344">344</option>
+                                
+                                    <option value="346">346</option>
+                                
+                                    <option value="347">347</option>
+                                
+                                    <option value="348">348</option>
+                                
+                                    <option value="350">350</option>
+                                
+                                    <option value="351">351</option>
+                                
+                                    <option value="353">353</option>
+                                
+                                    <option value="355">355</option>
+                                
+                                    <option value="357">357</option>
+                                
+                                    <option value="359">359</option>
+                                
+                                    <option value="361">361</option>
+                                
+                                    <option value="363">363</option>
+                                
+                                    <option value="365">365</option>
+                                
+                                    <option value="366">366</option>
+                                
+                                    <option value="367">367</option>
+                                
+                                    <option value="376">376</option>
+                                
+                                    <option value="378">378</option>
+                                
+                                    <option value="380">380</option>
+                                
+                                    <option value="368">368</option>
+                                
+                                    <option value="370">370</option>
+                                
+                                    <option value="372">372</option>
+                                
+                                    <option value="374">374</option>
+                                
+                                    <option value="369">369</option>
+                                
+                                    <option value="371">371</option>
+                                
+                                    <option value="373">373</option>
+                                
+                                    <option value="375">375</option>
+                                
+                                    <option value="377">377</option>
+                                
+                                    <option value="379">379</option>
+                                
+                                    <option value="381">381</option>
+                                
+                                    <option value="382">382</option>
+                                
+                                    <option value="383">383</option>
+                                
+                                    <option value="388">388</option>
+                                
+                                    <option value="390">390</option>
+                                
+                                    <option value="392">392</option>
+                                
+                                    <option value="394">394</option>
+                                
+                                    <option value="396">396</option>
+                                
+                                    <option value="398">398</option>
+                                
+                                    <option value="384">384</option>
+                                
+                                    <option value="386">386</option>
+                                
+                                    <option value="385">385</option>
+                                
+                                    <option value="387">387</option>
+                                
+                                    <option value="389">389</option>
+                                
+                                    <option value="391">391</option>
+                                
+                                    <option value="393">393</option>
+                                
+                                    <option value="395">395</option>
+                                
+                                    <option value="397">397</option>
+                                
+                                    <option value="399">399</option>
+                                
+                                    <option value="400">400</option>
+                                
+                                    <option value="401">401</option>
+                                
+                                    <option value="411">411</option>
+                                
+                                    <option value="413">413</option>
+                                
+                                    <option value="415">415</option>
+                                
+                                    <option value="402">402</option>
+                                
+                                    <option value="403">403</option>
+                                
+                                    <option value="405">405</option>
+                                
+                                    <option value="407">407</option>
+                                
+                                    <option value="409">409</option>
+                                
+                                    <option value="404">404</option>
+                                
+                                    <option value="406">406</option>
+                                
+                                    <option value="408">408</option>
+                                
+                                    <option value="410">410</option>
+                                
+                                    <option value="412">412</option>
+                                
+                                    <option value="414">414</option>
+                                
+                                    <option value="416">416</option>
+                                
+                                    <option value="417">417</option>
+                                
+                                    <option value="418">418</option>
+                                
+                                    <option value="426">426</option>
+                                
+                                    <option value="428">428</option>
+                                
+                                    <option value="430">430</option>
+                                
+                                    <option value="419">419</option>
+                                
+                                    <option value="420">420</option>
+                                
+                                    <option value="422">422</option>
+                                
+                                    <option value="424">424</option>
+                                
+                                    <option value="421">421</option>
+                                
+                                    <option value="423">423</option>
+                                
+                                    <option value="425">425</option>
+                                
+                                    <option value="427">427</option>
+                                
+                                    <option value="429">429</option>
+                                
+                                    <option value="431">431</option>
+                                
+                                    <option value="432">432</option>
+                                
+                                    <option value="433">433</option>
+                                
+                                    <option value="455">455</option>
+                                
+                                    <option value="457">457</option>
+                                
+                                    <option value="459">459</option>
+                                
+                                    <option value="434">434</option>
+                                
+                                    <option value="435">435</option>
+                                
+                                    <option value="437">437</option>
+                                
+                                    <option value="439">439</option>
+                                
+                                    <option value="441">441</option>
+                                
+                                    <option value="443">443</option>
+                                
+                                    <option value="445">445</option>
+                                
+                                    <option value="447">447</option>
+                                
+                                    <option value="449">449</option>
+                                
+                                    <option value="451">451</option>
+                                
+                                    <option value="453">453</option>
+                                
+                                    <option value="436">436</option>
+                                
+                                    <option value="438">438</option>
+                                
+                                    <option value="440">440</option>
+                                
+                                    <option value="442">442</option>
+                                
+                                    <option value="444">444</option>
+                                
+                                    <option value="446">446</option>
+                                
+                                    <option value="448">448</option>
+                                
+                                    <option value="450">450</option>
+                                
+                                    <option value="452">452</option>
+                                
+                                    <option value="454">454</option>
+                                
+                                    <option value="456">456</option>
+                                
+                                    <option value="458">458</option>
+                                
+                                    <option value="460">460</option>
+                                
+                                    <option value="461">461</option>
+                                
+                                    <option value="462">462</option>
+                                
+                                    <option value="466">466</option>
+                                
+                                    <option value="468">468</option>
+                                
+                                    <option value="470">470</option>
+                                
+                                    <option value="472">472</option>
+                                
+                                    <option value="463">463</option>
+                                
+                                    <option value="464">464</option>
+                                
+                                    <option value="465">465</option>
+                                
+                                    <option value="467">467</option>
+                                
+                                    <option value="469">469</option>
+                                
+                                    <option value="471">471</option>
+                                
+                                    <option value="473">473</option>
+                                
+                                    <option value="474">474</option>
+                                
+                                    <option value="475">475</option>
+                                
+                                    <option value="489">489</option>
+                                
+                                    <option value="491">491</option>
+                                
+                                    <option value="493">493</option>
+                                
+                                    <option value="476">476</option>
+                                
+                                    <option value="477">477</option>
+                                
+                                    <option value="479">479</option>
+                                
+                                    <option value="481">481</option>
+                                
+                                    <option value="483">483</option>
+                                
+                                    <option value="485">485</option>
+                                
+                                    <option value="487">487</option>
+                                
+                                    <option value="478">478</option>
+                                
+                                    <option value="480">480</option>
+                                
+                                    <option value="482">482</option>
+                                
+                                    <option value="484">484</option>
+                                
+                                    <option value="486">486</option>
+                                
+                                    <option value="488">488</option>
+                                
+                                    <option value="490">490</option>
+                                
+                                    <option value="492">492</option>
+                                
+                                    <option value="494">494</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "orange", "id": 0, "label": "TupleToolKinematic", "shape": "dot", "size": 15}, {"color": "green", "id": 1, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 30, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 32, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 34, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "pink", "id": 36, "label": "Transporter", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 2, "label": "head_P", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 4, "label": "head_PT", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 6, "label": "head_P[E|X|Y|Z]", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 8, "label": "head_MM", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 10, "label": "head_M", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 12, "label": "head_MMERR", "shape": "dot", "size": 10}, {"color": "green", "id": 14, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 3, "label": "momentum\u0027s amplitude", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 5, "label": "transverse momentum", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 7, "label": "four vector momentum", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 9, "label": "measured mass (or assigned mass in case of \u0027basic\u0027 particle) ", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 11, "label": "mass calculated from momentum four-vector", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 13, "label": "error on the measured mass (only for non-basic parts)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 15, "label": "head_REFP[X|Y|Z]", "shape": "dot", "size": 10}, {"color": "green", "id": 17, "label": "basic,charged", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 16, "label": "one point the particle momentum extrapolation goes through", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 18, "label": "head_AtVtx_P", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 20, "label": "head_AtVtx_PT", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 22, "label": "head_AtVtx_P[E|X|Y|Z]", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 24, "label": "head_AtSV_P", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 26, "label": "head_AtSV_PT", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 28, "label": "head_AtSV_P[E|X|Y|Z]", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 19, "label": "momentum\u0027s amplitude at origin vertex", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 21, "label": "transverse momentum at origin vertex", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 23, "label": "momentum information of basic particles at origin vertex position", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 25, "label": "momentum\u0027s amplitude at secondary vertex", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 27, "label": "transverse momentum at secondary vertex", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 29, "label": "momentum information of basic particles at secondary vertex position", "shape": "dot", "size": 10}, {"color": "pink", "id": 31, "label": 31, "shape": "dot", "size": 10}, {"color": "pink", "id": 33, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 35, "label": "100", "shape": "dot", "size": 10}, {"color": "pink", "id": 37, "label": "ParticleTransporter:PUBLIC", "shape": "dot", "size": 10}, {"color": "orange", "id": 38, "label": "TupleToolEventInfo", "shape": "dot", "size": 15}, {"color": "green", "id": 39, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 65, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 67, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 69, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 40, "label": "runNumber", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 42, "label": "eventNumber", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 44, "label": "BCID", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 46, "label": "BC type", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 48, "label": "OdinTCK", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 50, "label": "L0DUTCK", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 52, "label": "HLT1TCK", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 54, "label": "HLT2TCK", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 56, "label": "GpsTime", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 58, "label": "Polarity", "shape": "dot", "size": 10}, {"color": "green", "id": 60, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 41, "label": "well, the run number", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 43, "label": "well, the event number", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 45, "label": "bunch crossing id", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 47, "label": " Bunch Crossing type: 0 = NoBeam,  1 = Beam1,  2 = Beam2,   3 = Beam Crossing", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 49, "label": "Odin Trigger Configuration Keys", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 51, "label": "L0DU Trigger Configuration Keys", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 53, "label": "HLT1 Trigger Configuration Keys", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 55, "label": "HLT2 Trigger Configuration Keys", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 57, "label": "Time", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 59, "label": "+1 = Up  -1 = Down", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 61, "label": "TriggerType", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 63, "label": "GpsYear,month,day etc.", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 62, "label": 62, "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 64, "label": "More detailed gps time", "shape": "dot", "size": 10}, {"color": "pink", "id": 66, "label": 66, "shape": "dot", "size": 10}, {"color": "pink", "id": 68, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 70, "label": "100", "shape": "dot", "size": 10}, {"color": "orange", "id": 71, "label": "TupleToolANNPID", "shape": "dot", "size": 15}, {"color": "green", "id": 72, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 76, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 78, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 80, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "pink", "id": 82, "label": "ANNPIDTunes", "shape": "dot", "size": 10}, {"color": "pink", "id": 84, "label": "PIDTypes", "shape": "dot", "size": 10}, {"color": "green", "id": 73, "label": "basic,charged", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 74, "label": "head_ANNPIDTunes_ProbNNPIDTypes", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 75, "label": "Writes prob that particle is of PID type (e.g. electron, muon etc.)", "shape": "dot", "size": 10}, {"color": "pink", "id": 77, "label": 77, "shape": "dot", "size": 10}, {"color": "pink", "id": 79, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 81, "label": "100", "shape": "dot", "size": 10}, {"color": "pink", "id": 83, "label": "[\u0027MC12TuneV2\u0027, \u0027MC12TuneV3\u0027, \u0027MC12TuneV4\u0027, \u0027MC15TuneV1\u0027]", "shape": "dot", "size": 10}, {"color": "pink", "id": 85, "label": "[\u0027Electron\u0027, \u0027Muon\u0027, \u0027Pion\u0027, \u0027Kaon\u0027, \u0027Proton\u0027, \u0027Ghost\u0027]", "shape": "dot", "size": 10}, {"color": "orange", "id": 86, "label": "TupleToolPid", "shape": "dot", "size": 15}, {"color": "green", "id": 87, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 155, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 157, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 159, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 88, "label": "head_ID", "shape": "dot", "size": 10}, {"color": "green", "id": 90, "label": "basic", "shape": "dot", "size": 10}, {"color": "green", "id": 105, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 89, "label": "PDG ID?", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 91, "label": "head_PID{e,mu,K,p,d}", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 93, "label": "head_ProbNN{e,k,p,pi,mu,d,ghost}", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 95, "label": "head_hasMuon", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 97, "label": "head_isMuon", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 99, "label": "head_hasRich", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 101, "label": "head_RichAbove{El,Mu,Pi,Ka,Pr}Thres", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 103, "label": "head_hasCalo", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 92, "label": " Likelihood vs Pion Likelihood?", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 94, "label": "Prob calculated from ANN", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 96, "label": "track has hits consistent with a muon", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 98, "label": "Is the track from a muon?", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 100, "label": "RICH registered a track in event", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 102, "label": "Electron, Muon etc. Hypothesis over RICH threshold", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 104, "label": "hits in calorimeter", "shape": "dot", "size": 10}, {"color": "green", "id": 106, "label": "basic", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 107, "label": "head_RichDLL{mu,pi,k,p,bt,d}", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 109, "label": "head_InAccMuon", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 111, "label": "head_isMuonLoose", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 113, "label": "head_isMuonTight", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 115, "label": "head_MuonNSharedHits", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 117, "label": "head_MuonMuLL", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 119, "label": "head_MuonBkgLL", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 121, "label": "head_MuonChi2Correlated", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 123, "label": "head_InAccEcal", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 125, "label": "head_CaloEcalE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 127, "label": "head_EcalPIDe", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 129, "label": "head_EcalPIDmu", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 131, "label": "head_InAccHcal", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 133, "label": "head_CaloHcalE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 135, "label": "head_HcalPIDe", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 137, "label": "head_HcalPIDmu", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 139, "label": "head_InAccPrs", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 141, "label": "head_PrsPIDe", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 143, "label": "head_CaloPrsE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 145, "label": "head_InAccSpd", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 147, "label": "head_CaloSpdE", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 149, "label": "head_InAccBrem", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 151, "label": "head_BremPIDe", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 153, "label": "head_VeloCharge", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 108, "label": "delta log likelihood for muon, pion etc. below threshold hypothesis", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 110, "label": "Acceptance flag for MUON system (reaches geometrical acceptance)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 112, "label": "muon candidates with the momentum between 3 and 6 GeV/c that have hits in at least M1-M4 muon stations and the candidates with the momentum greater than 6 GeV/c that have hits in all muon stations", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 114, "label": "only crossed hits, signal in x and y readout", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 116, "label": "The number of muon system hits shared with other tracks.", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 118, "label": "The absolute value of the muon-like LL. (log likelihood)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 120, "label": "The absolute value of the non-muon-like LL.", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 122, "label": "The chi2 using the correlation of the hits", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 124, "label": "Flag in acceptance of Ecal-based CaloID", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 126, "label": "CaloID estimator : Ecal energy deposit (charged)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 128, "label": "Ecal-based DLL for electron-ID", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 130, "label": "Ecal-based DLL for muon-ID DLL", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 132, "label": "Flag in acceptance of Hcal-based CaloID", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 134, "label": "CaloID estimator : Hcal energy deposit (charged)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 136, "label": "Hcal-based DLL for electron-ID", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 138, "label": "Ecal-based DLL for muon-ID DLL", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 140, "label": "Flag in acceptance of Prs-based CaloID (PreShower)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 142, "label": "Prs-based DLL for electron-ID", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 144, "label": "CaloID estimator : Prs energy deposit (charged)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 146, "label": "Flag in acceptance of Spd-based CaloID (Scintillating Pad)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 148, "label": "CaloID estimator : Spd hit", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 150, "label": "Flag in acceptance of Brem-based CaloID (Bremsstrahlung)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 152, "label": "Brem-based DLL for electron-ID", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 154, "label": " The dE/dx charge from the VELO system", "shape": "dot", "size": 10}, {"color": "pink", "id": 156, "label": 156, "shape": "dot", "size": 10}, {"color": "pink", "id": 158, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 160, "label": "100", "shape": "dot", "size": 10}, {"color": "orange", "id": 161, "label": "TupleToolGeometry", "shape": "dot", "size": 15}, {"color": "green", "id": 162, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 254, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 256, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 258, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "pink", "id": 260, "label": "RefitPVs", "shape": "dot", "size": 10}, {"color": "pink", "id": 262, "label": "PVReFitter", "shape": "dot", "size": 10}, {"color": "pink", "id": 264, "label": "FillMultiPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 163, "label": "head_ENDVERTEX_[X|Y|Z]", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 165, "label": "head_ENDVERTEX_[X|Y|Z]ERR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 167, "label": "head_ENDVERTEX_CHI2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 169, "label": "head_ENDVERTEX_NDOF", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 171, "label": "head_ENDVERTEX_COV_", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 173, "label": "head_OWNPV_[X|Y|Z]", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 175, "label": "head_OWNPV_[X|Y|Z]ERR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 177, "label": "head_OWNPV_CHI2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 179, "label": "head_OWNPV_NDOF", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 181, "label": "head_OWNPV_COV_", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 183, "label": "head_IP_OWNPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 185, "label": "head_IPCHI2_OWNPV", "shape": "dot", "size": 10}, {"color": "green", "id": 187, "label": "!basic", "shape": "dot", "size": 10}, {"color": "green", "id": 194, "label": "!head", "shape": "dot", "size": 10}, {"color": "green", "id": 212, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "green", "id": 244, "label": "FillMultiPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 164, "label": "decay vertex position for composite particles", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 166, "label": "decay vertex position error estimate for composite particles", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 168, "label": "decay vertex chi2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 170, "label": "decay vertex nDoF", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 172, "label": "Covariance matrix containing errors on vertex position", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 174, "label": "related primary vertex position", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 176, "label": " related primary vertex position error estimate for composite particles", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 178, "label": "related primary vertex chi2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 180, "label": " related primary vertex nDoF", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 182, "label": "Covariance matrix containing errors on vertex position", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 184, "label": "impact parameter with respect to the PhysDesktop::relatedVertex() considered particle", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 186, "label": "impact parameter chi2 with respect to the relatedVertex() considered particle", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 188, "label": "head_FD_OWNPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 190, "label": "head_FDCHI2_OWNPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 192, "label": "head_DIRA_OWNPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 189, "label": "flight distance of composite particle wrt. the relatedVertex() considered particle", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 191, "label": "flight distance significance in units of chi2 wrt. the relatedVertex() considered particle", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 193, "label": "direction angle wrt. the PhysDesktop::relatedVertex() considered particle", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 195, "label": "head_ORIVX_[X|Y|Z]", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 197, "label": "head_ORIVX_[X|Y|Z]ERR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 199, "label": "head_ORIVX_CHI2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 201, "label": "head_ORIVX_NDOF", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 203, "label": "head_ORIVX_COV_", "shape": "dot", "size": 10}, {"color": "green", "id": 205, "label": "!basic", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 196, "label": "ancestor\u0027s related primary vertex position (when applicable)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 198, "label": "ancestor\u0027s related primary vertex position error estimate (when applicable)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 200, "label": "ancestor\u0027s related primary vertex chi2 (when applicable)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 202, "label": "ancestor\u0027s related primary vertex nDoF (when applicable)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 204, "label": "Covariance matrix containing errors on vertex position", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 206, "label": "head_FD_ORIVX", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 208, "label": "head_FDCHI2_ORIVX", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 210, "label": "head_DIRA_ORIVX", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 207, "label": "flight distance of composite particle wrt. the ancestor\u0027s vertex (when applicable)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 209, "label": "flight distance significance in units of chi2 wrt. ancestor\u0027s vertex (when applicable)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 211, "label": "direction angle wrt. ancestor\u0027s vertex (when applicable)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 213, "label": "head_TOPPV_[X|Y|Z]", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 215, "label": "head_TOPPV_[X|Y|Z]ERR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 217, "label": "head_TOPPV_CHI2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 219, "label": "head_TOPPV_NDOF", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 221, "label": "head_IP_TOPPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 223, "label": "head_IPCHI2_TOPPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 225, "label": "head_IP_ORIVX", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 227, "label": "head_IPCHI2_ORIVX", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 229, "label": "head_MINIP", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 231, "label": "head_MINIPCHI2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 233, "label": "head_MINIPNEXTBEST", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 235, "label": "head_MINIPCHI2NEXTBEST", "shape": "dot", "size": 10}, {"color": "green", "id": 237, "label": "!basic", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 214, "label": "PhysDesktop::relatedVertex() of the top of decay chain position", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 216, "label": "PhysDesktop::relatedVertex() of the top of decay chain position error estimate", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 218, "label": "PhysDesktop::relatedVertex() of the top of decay chain chi2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 220, "label": "PhysDesktop::relatedVertex() of the top of decay chain nDoF", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 222, "label": "impact parameter with respect to the PhysDesktop::relatedVertex() of the top of decay chain", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 224, "label": "impact parameter chi2 with respect to the relatedVertex() of the top of decay chain", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 226, "label": "impact parameter with respect to the ancestor\u0027s vertex (when applicable)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 228, "label": "impact parameter chi2 with respect to the ancestor\u0027s vertex (when applicable)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 230, "label": "minimum value of the impact parameter of the particle", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 232, "label": "minimum value of the impact parameter of the particle chi2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 234, "label": "next best minimum value of the ip", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 236, "label": "next best minimum value of the ip chi2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 238, "label": "head_FD_TOPPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 240, "label": "head_FDCHI2_TOPPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 242, "label": "head_DIRA_TOPPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 239, "label": "flight distance of composite particle wrt. the relatedVertex() of the top of decay chain", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 241, "label": "flight distance significance in units of chi2 wrt. the PhysDesktop::relatedVertex() of the top of decay chain", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 243, "label": "direction angle wrt. the relatedVertex() of the top of decay chain", "shape": "dot", "size": 10}, {"color": "green", "id": 245, "label": "head", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 248, "label": "head_AllIP", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 250, "label": "head_AllIPchi2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 252, "label": "head_AllDIRA", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 246, "label": "nPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 247, "label": "number of primary vertices", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 249, "label": "IP wrt to all PVs", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 251, "label": "IPchi2 wrt to all Vs", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 253, "label": "DIRA wrt to all PVs", "shape": "dot", "size": 10}, {"color": "pink", "id": 255, "label": 255, "shape": "dot", "size": 10}, {"color": "pink", "id": 257, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 259, "label": "100", "shape": "dot", "size": 10}, {"color": "pink", "id": 261, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 263, "label": "LoKi::PVReFitter:PUBLIC", "shape": "dot", "size": 10}, {"color": "pink", "id": 265, "label": "False", "shape": "dot", "size": 10}, {"color": "orange", "id": 266, "label": "TupleToolAngles", "shape": "dot", "size": 15}, {"color": "green", "id": 267, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 274, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 276, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 278, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "pink", "id": 280, "label": "WRTMother", "shape": "dot", "size": 10}, {"color": "green", "id": 268, "label": "!head", "shape": "dot", "size": 10}, {"color": "green", "id": 271, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 269, "label": "head_CosTheta", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 270, "label": "angle in the frame of the mother", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 272, "label": "head_Theta", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 273, "label": "acos(CosTheta)", "shape": "dot", "size": 10}, {"color": "pink", "id": 275, "label": 275, "shape": "dot", "size": 10}, {"color": "pink", "id": 277, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 279, "label": "100", "shape": "dot", "size": 10}, {"color": "pink", "id": 281, "label": "True", "shape": "dot", "size": 10}, {"color": "orange", "id": 282, "label": "TupleToolBremInfo", "shape": "dot", "size": 15}, {"color": "green", "id": 283, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 302, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 304, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 306, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "pink", "id": 308, "label": "Particle", "shape": "dot", "size": 10}, {"color": "pink", "id": 310, "label": "fullDST", "shape": "dot", "size": 10}, {"color": "green", "id": 284, "label": "basic", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 285, "label": "head_HasBremAdded", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 287, "label": "head_BremMultiplicity", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 289, "label": "head_DiBremMultiplicity", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 291, "label": "head_Particle_DiBremMultiplicity", "shape": "dot", "size": 10}, {"color": "green", "id": 293, "label": "fullDST", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 286, "label": "particle momentum is brem-corrected (0/1)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 288, "label": "number of brem photons added to the particle momentum", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 290, "label": "number of brem photons added to the particle momentum for (p1,p2) system", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 292, "label": "number of brem photons added to the particle momentum for specific particle", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 294, "label": "head_BremP", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 296, "label": "head_BremOrigin", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 298, "label": "head_DiBremP", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 300, "label": "head_Particle_StandaloneBremMultiplicity", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 295, "label": "momentum of the brem photon", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 297, "label": "origin point of the brem photon", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 299, "label": "momentum of the brem photon for (p1,p2) system", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 301, "label": "number of brem photons added to the particle momentum for specific particle", "shape": "dot", "size": 10}, {"color": "pink", "id": 303, "label": 303, "shape": "dot", "size": 10}, {"color": "pink", "id": 305, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 307, "label": "100", "shape": "dot", "size": 10}, {"color": "pink", "id": 309, "label": "[\u0027e+\u0027, \u0027gamma\u0027]", "shape": "dot", "size": 10}, {"color": "pink", "id": 311, "label": "True", "shape": "dot", "size": 10}, {"color": "orange", "id": 312, "label": "TupleToolCaloHypo", "shape": "dot", "size": 15}, {"color": "green", "id": 313, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 352, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 354, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 356, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "pink", "id": 358, "label": "DataList", "shape": "dot", "size": 10}, {"color": "pink", "id": 360, "label": "AllowBremHypo", "shape": "dot", "size": 10}, {"color": "pink", "id": 362, "label": "AllowChargedHypo", "shape": "dot", "size": 10}, {"color": "pink", "id": 364, "label": "AllowDaughtersHypo", "shape": "dot", "size": 10}, {"color": "green", "id": 314, "label": "!charged", "shape": "dot", "size": 10}, {"color": "green", "id": 339, "label": "AllowBremHypo", "shape": "dot", "size": 10}, {"color": "green", "id": 345, "label": "AllowChargedHypo", "shape": "dot", "size": 10}, {"color": "green", "id": 349, "label": "AllowDaugthersHypo", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 315, "label": "head_hasCaloHypo", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 317, "label": "h\u00c3\u00a9ad_CaloHypo_E", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 319, "label": "head_CaloHypo_X", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 321, "label": "head_CaloHypo_Y", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 323, "label": "head_CaloHypo_Z", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 325, "label": "head_CaloHypoPileupEnergy", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 327, "label": "head_CaloHypo_Name[i]", "shape": "dot", "size": 10}, {"color": "green", "id": 329, "label": "!basic", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 316, "label": "Possible Calo results (0 or 1)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 318, "label": "Calo energy", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 320, "label": "Calo X position", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 322, "label": "Calo Y position", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 324, "label": "Calo Z position", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 326, "label": "Calo pileup energy", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 328, "label": "Various variables", "shape": "dot", "size": 10}, {"color": "green", "id": 330, "label": "AllowDaugthersHypo", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 331, "label": "head_CaloHypoDaugh0/1_E", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 333, "label": "head_CaloHypoDaugh0/1_X", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 335, "label": "head_CaloHypoDaugh0/1_Y", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 337, "label": "head_CaloHypoDaugh0/1_Z", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 332, "label": "Calo energy of daughter 0", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 334, "label": "Calo X position of daughter 0", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 336, "label": "Calo Y position of daughter 0", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 338, "label": "Calo Z position of daughter 0", "shape": "dot", "size": 10}, {"color": "green", "id": 340, "label": "charged", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 341, "label": "head_hasBremCaloHypo", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 343, "label": "head_BremCaloHypo_Name[i]", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 342, "label": "Possible Brem Calo results (0 or 1)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 344, "label": "Various variables", "shape": "dot", "size": 10}, {"color": "green", "id": 346, "label": "charged", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 347, "label": "head_CaloHypo_DeltaTheta", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 348, "label": "Calo Delta Theta", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 350, "label": "head_CaloHypoDaugh0_Name[i]", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 351, "label": "Various variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 353, "label": 353, "shape": "dot", "size": 10}, {"color": "pink", "id": 355, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 357, "label": "100", "shape": "dot", "size": 10}, {"color": "pink", "id": 359, "label": "[\u0027All\u0027]", "shape": "dot", "size": 10}, {"color": "pink", "id": 361, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 363, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 365, "label": "False", "shape": "dot", "size": 10}, {"color": "orange", "id": 366, "label": "TupleToolCorrectedMass", "shape": "dot", "size": 15}, {"color": "green", "id": 367, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 376, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 378, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 380, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 368, "label": "head_MCORR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 370, "label": "head_MCORRERR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 372, "label": "head_MCORRVERTEXERR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 374, "label": "head_PTREL", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 369, "label": "Corrected mass", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 371, "label": "Corrected mass error", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 373, "label": "Corrected mass error, only taking into account the vertex uncertainties", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 375, "label": "Transverse momentum of the particle with respect to the flight direction", "shape": "dot", "size": 10}, {"color": "pink", "id": 377, "label": 377, "shape": "dot", "size": 10}, {"color": "pink", "id": 379, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 381, "label": "100", "shape": "dot", "size": 10}, {"color": "orange", "id": 382, "label": "TupleToolDOCA", "shape": "dot", "size": 15}, {"color": "green", "id": 383, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 388, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 390, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 392, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "pink", "id": 394, "label": "Location1", "shape": "dot", "size": 10}, {"color": "pink", "id": 396, "label": "Location2", "shape": "dot", "size": 10}, {"color": "pink", "id": 398, "label": "Name", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 384, "label": "head_DOCA_Name", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 386, "label": "head_DOCACHI2_Name", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 385, "label": "Distance of closest approach between the two daughters", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 387, "label": "Distance of closest approach between the two daughters, chi2", "shape": "dot", "size": 10}, {"color": "pink", "id": 389, "label": 389, "shape": "dot", "size": 10}, {"color": "pink", "id": 391, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 393, "label": "100", "shape": "dot", "size": 10}, {"color": "pink", "id": 395, "label": "[]", "shape": "dot", "size": 10}, {"color": "pink", "id": 397, "label": "[]", "shape": "dot", "size": 10}, {"color": "pink", "id": 399, "label": "[]", "shape": "dot", "size": 10}, {"color": "orange", "id": 400, "label": "TupleToolDira", "shape": "dot", "size": 15}, {"color": "green", "id": 401, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 411, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 413, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 415, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "green", "id": 402, "label": "charged,head,!basic", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 403, "label": "head_DiraAngle", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 405, "label": "head_DiraAngleError", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 407, "label": "head_DiraCosError", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 409, "label": "head_DiraCos", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 404, "label": "The angle between a line drawn from the primary vertex to the decay vertex of the particle and the sum of the 4-momentum of its decay products.", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 406, "label": "Error on dira angle", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 408, "label": "Error on cos(dira)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 410, "label": "cos(dira)", "shape": "dot", "size": 10}, {"color": "pink", "id": 412, "label": 412, "shape": "dot", "size": 10}, {"color": "pink", "id": 414, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 416, "label": "100", "shape": "dot", "size": 10}, {"color": "orange", "id": 417, "label": "TupleToolHOP", "shape": "dot", "size": 15}, {"color": "green", "id": 418, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 426, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 428, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 430, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "green", "id": 419, "label": "head", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 420, "label": "head_HOP", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 422, "label": "head_HOP_MASS", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 424, "label": "head_ELECTRON_MASS", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 421, "label": "HOP correction, the ratio between the Pt (with respecto to the mothers direction of flight) of electrons and non-electrons", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 423, "label": "Mother mass obtained by scalling the electrons P by the hop factor", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 425, "label": "Mass obtained by summing the four-momenta of all electrons", "shape": "dot", "size": 10}, {"color": "pink", "id": 427, "label": 427, "shape": "dot", "size": 10}, {"color": "pink", "id": 429, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 431, "label": "100", "shape": "dot", "size": 10}, {"color": "orange", "id": 432, "label": "TupleToolParticleReFit", "shape": "dot", "size": 15}, {"color": "green", "id": 433, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 455, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 457, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 459, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "green", "id": 434, "label": "!basic,head", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 435, "label": "head_ExtraNamerefit_status", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 437, "label": "head_ExtraNamerefit_ENDVERTEX_NDOF", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 439, "label": "head_ExtraNamerefit_ENDVERTEX_CHI2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 441, "label": "head_ExtraNamerefit_MM", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 443, "label": "head_ExtraNamerefit_MMERR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 445, "label": "head_ExtraNamerefit_P", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 447, "label": "head_ExtraNamerefit_PT", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 449, "label": "head_ExtraNamerefit_TAU", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 451, "label": "head_ExtraNamerefit_TAUERR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 453, "label": "head_ExtraNamerefit_TAUCHI2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 436, "label": "Status of the refit", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 438, "label": "Number of degrees of freedom of the refit", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 440, "label": "Chi2 of the refit", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 442, "label": "Mass of the refit", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 444, "label": "Mass error of the refit", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 446, "label": "Momentum of the refit", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 448, "label": "Transverse momentum of the refit", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 450, "label": "Time in ns", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 452, "label": "Time error in ns", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 454, "label": "Time chi2", "shape": "dot", "size": 10}, {"color": "pink", "id": 456, "label": 456, "shape": "dot", "size": 10}, {"color": "pink", "id": 458, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 460, "label": "100", "shape": "dot", "size": 10}, {"color": "orange", "id": 461, "label": "TupleToolParticleStats", "shape": "dot", "size": 15}, {"color": "green", "id": 462, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 466, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 468, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 470, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "pink", "id": 472, "label": "InputLocations", "shape": "dot", "size": 10}, {"color": "green", "id": 463, "label": "head", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 464, "label": "event_NumberOfInputLocations", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 465, "label": "Number of particles specified in the inputLocations", "shape": "dot", "size": 10}, {"color": "pink", "id": 467, "label": 467, "shape": "dot", "size": 10}, {"color": "pink", "id": 469, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 471, "label": "100", "shape": "dot", "size": 10}, {"color": "pink", "id": 473, "label": "[\u0027StdLooseAllPhotons\u0027]", "shape": "dot", "size": 10}, {"color": "orange", "id": 474, "label": "TupleToolTrackKink", "shape": "dot", "size": 15}, {"color": "green", "id": 475, "label": "variables", "shape": "dot", "size": 10}, {"color": "pink", "id": 489, "label": "ExtraName", "shape": "dot", "size": 10}, {"color": "pink", "id": 491, "label": "Verbose", "shape": "dot", "size": 10}, {"color": "pink", "id": 493, "label": "MaxPV", "shape": "dot", "size": 10}, {"color": "green", "id": 476, "label": "!basic", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 477, "label": "head_TRACK_kinkChi2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 479, "label": "head_TRACK_kinkChi2z", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 481, "label": "head_TRACK_kinkFitChi2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 483, "label": "head_TRACK_kinkFitDeltaR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 485, "label": "head_TRACK_kinkFitDeltaRErr", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 487, "label": "head_TRACK_kinkFitDeltaRz", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 478, "label": "Chi2 of the kink fit", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 480, "label": "Z position of the kink", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 482, "label": "Chi2 of the kink fit", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 484, "label": "Delta R of the kink fit DeltaR = sqrt [( dy/dz - (dy/dz)\u0027 )^2 + ( dx/dz - (dx/dz)\u0027 )^2 ]", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 486, "label": "Error on DeltaR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": 488, "label": "Z position of the kink", "shape": "dot", "size": 10}, {"color": "pink", "id": 490, "label": 490, "shape": "dot", "size": 10}, {"color": "pink", "id": 492, "label": "False", "shape": "dot", "size": 10}, {"color": "pink", "id": 494, "label": "100", "shape": "dot", "size": 10}]);
+                  edges = new vis.DataSet([{"from": 0, "label": "", "to": 1, "width": 1}, {"from": 0, "label": "option", "to": 30, "width": 1}, {"from": 0, "label": "option", "to": 32, "width": 1}, {"from": 0, "label": "option", "to": 34, "width": 1}, {"from": 0, "label": "option", "to": 36, "width": 1}, {"from": 1, "label": "variables", "to": 2, "width": 1}, {"from": 1, "label": "variables", "to": 4, "width": 1}, {"from": 1, "label": "variables", "to": 6, "width": 1}, {"from": 1, "label": "variables", "to": 8, "width": 1}, {"from": 1, "label": "variables", "to": 10, "width": 1}, {"from": 1, "label": "variables", "to": 12, "width": 1}, {"from": 1, "label": "", "to": 14, "width": 1}, {"from": 2, "to": 3, "width": 1}, {"from": 4, "to": 5, "width": 1}, {"from": 6, "to": 7, "width": 1}, {"from": 8, "to": 9, "width": 1}, {"from": 10, "to": 11, "width": 1}, {"from": 12, "to": 13, "width": 1}, {"from": 14, "label": "Verbose", "to": 15, "width": 1}, {"from": 14, "label": "Verbose", "to": 17, "width": 1}, {"from": 15, "to": 16, "width": 1}, {"from": 17, "label": "basic,charged", "to": 18, "width": 1}, {"from": 17, "label": "basic,charged", "to": 20, "width": 1}, {"from": 17, "label": "basic,charged", "to": 22, "width": 1}, {"from": 17, "label": "basic,charged", "to": 24, "width": 1}, {"from": 17, "label": "basic,charged", "to": 26, "width": 1}, {"from": 17, "label": "basic,charged", "to": 28, "width": 1}, {"from": 18, "to": 19, "width": 1}, {"from": 20, "to": 21, "width": 1}, {"from": 22, "to": 23, "width": 1}, {"from": 24, "to": 25, "width": 1}, {"from": 26, "to": 27, "width": 1}, {"from": 28, "to": 29, "width": 1}, {"from": 30, "label": "default", "to": 31, "width": 1}, {"from": 32, "label": "default", "to": 33, "width": 1}, {"from": 34, "label": "default", "to": 35, "width": 1}, {"from": 36, "label": "default", "to": 37, "width": 1}, {"from": 38, "label": "", "to": 39, "width": 1}, {"from": 38, "label": "option", "to": 65, "width": 1}, {"from": 38, "label": "option", "to": 67, "width": 1}, {"from": 38, "label": "option", "to": 69, "width": 1}, {"from": 39, "label": "variables", "to": 40, "width": 1}, {"from": 39, "label": "variables", "to": 42, "width": 1}, {"from": 39, "label": "variables", "to": 44, "width": 1}, {"from": 39, "label": "variables", "to": 46, "width": 1}, {"from": 39, "label": "variables", "to": 48, "width": 1}, {"from": 39, "label": "variables", "to": 50, "width": 1}, {"from": 39, "label": "variables", "to": 52, "width": 1}, {"from": 39, "label": "variables", "to": 54, "width": 1}, {"from": 39, "label": "variables", "to": 56, "width": 1}, {"from": 39, "label": "variables", "to": 58, "width": 1}, {"from": 39, "label": "", "to": 60, "width": 1}, {"from": 40, "to": 41, "width": 1}, {"from": 42, "to": 43, "width": 1}, {"from": 44, "to": 45, "width": 1}, {"from": 46, "to": 47, "width": 1}, {"from": 48, "to": 49, "width": 1}, {"from": 50, "to": 51, "width": 1}, {"from": 52, "to": 53, "width": 1}, {"from": 54, "to": 55, "width": 1}, {"from": 56, "to": 57, "width": 1}, {"from": 58, "to": 59, "width": 1}, {"from": 60, "label": "Verbose", "to": 61, "width": 1}, {"from": 60, "label": "Verbose", "to": 63, "width": 1}, {"from": 61, "to": 62, "width": 1}, {"from": 63, "to": 64, "width": 1}, {"from": 65, "label": "default", "to": 66, "width": 1}, {"from": 67, "label": "default", "to": 68, "width": 1}, {"from": 69, "label": "default", "to": 70, "width": 1}, {"from": 71, "label": "", "to": 72, "width": 1}, {"from": 71, "label": "option", "to": 76, "width": 1}, {"from": 71, "label": "option", "to": 78, "width": 1}, {"from": 71, "label": "option", "to": 80, "width": 1}, {"from": 71, "label": "option", "to": 82, "width": 1}, {"from": 71, "label": "option", "to": 84, "width": 1}, {"from": 72, "label": "", "to": 73, "width": 1}, {"from": 73, "label": "basic,charged", "to": 74, "width": 1}, {"from": 74, "to": 75, "width": 1}, {"from": 76, "label": "default", "to": 77, "width": 1}, {"from": 78, "label": "default", "to": 79, "width": 1}, {"from": 80, "label": "default", "to": 81, "width": 1}, {"from": 82, "label": "default", "to": 83, "width": 1}, {"from": 84, "label": "default", "to": 85, "width": 1}, {"from": 86, "label": "", "to": 87, "width": 1}, {"from": 86, "label": "option", "to": 155, "width": 1}, {"from": 86, "label": "option", "to": 157, "width": 1}, {"from": 86, "label": "option", "to": 159, "width": 1}, {"from": 87, "label": "variables", "to": 88, "width": 1}, {"from": 87, "label": "", "to": 90, "width": 1}, {"from": 87, "label": "", "to": 105, "width": 1}, {"from": 88, "to": 89, "width": 1}, {"from": 90, "label": "basic", "to": 91, "width": 1}, {"from": 90, "label": "basic", "to": 93, "width": 1}, {"from": 90, "label": "basic", "to": 95, "width": 1}, {"from": 90, "label": "basic", "to": 97, "width": 1}, {"from": 90, "label": "basic", "to": 99, "width": 1}, {"from": 90, "label": "basic", "to": 101, "width": 1}, {"from": 90, "label": "basic", "to": 103, "width": 1}, {"from": 91, "to": 92, "width": 1}, {"from": 93, "to": 94, "width": 1}, {"from": 95, "to": 96, "width": 1}, {"from": 97, "to": 98, "width": 1}, {"from": 99, "to": 100, "width": 1}, {"from": 101, "to": 102, "width": 1}, {"from": 103, "to": 104, "width": 1}, {"from": 105, "label": "Verbose", "to": 106, "width": 1}, {"from": 106, "label": "basic", "to": 107, "width": 1}, {"from": 106, "label": "basic", "to": 109, "width": 1}, {"from": 106, "label": "basic", "to": 111, "width": 1}, {"from": 106, "label": "basic", "to": 113, "width": 1}, {"from": 106, "label": "basic", "to": 115, "width": 1}, {"from": 106, "label": "basic", "to": 117, "width": 1}, {"from": 106, "label": "basic", "to": 119, "width": 1}, {"from": 106, "label": "basic", "to": 121, "width": 1}, {"from": 106, "label": "basic", "to": 123, "width": 1}, {"from": 106, "label": "basic", "to": 125, "width": 1}, {"from": 106, "label": "basic", "to": 127, "width": 1}, {"from": 106, "label": "basic", "to": 129, "width": 1}, {"from": 106, "label": "basic", "to": 131, "width": 1}, {"from": 106, "label": "basic", "to": 133, "width": 1}, {"from": 106, "label": "basic", "to": 135, "width": 1}, {"from": 106, "label": "basic", "to": 137, "width": 1}, {"from": 106, "label": "basic", "to": 139, "width": 1}, {"from": 106, "label": "basic", "to": 141, "width": 1}, {"from": 106, "label": "basic", "to": 143, "width": 1}, {"from": 106, "label": "basic", "to": 145, "width": 1}, {"from": 106, "label": "basic", "to": 147, "width": 1}, {"from": 106, "label": "basic", "to": 149, "width": 1}, {"from": 106, "label": "basic", "to": 151, "width": 1}, {"from": 106, "label": "basic", "to": 153, "width": 1}, {"from": 107, "to": 108, "width": 1}, {"from": 109, "to": 110, "width": 1}, {"from": 111, "to": 112, "width": 1}, {"from": 113, "to": 114, "width": 1}, {"from": 115, "to": 116, "width": 1}, {"from": 117, "to": 118, "width": 1}, {"from": 119, "to": 120, "width": 1}, {"from": 121, "to": 122, "width": 1}, {"from": 123, "to": 124, "width": 1}, {"from": 125, "to": 126, "width": 1}, {"from": 127, "to": 128, "width": 1}, {"from": 129, "to": 130, "width": 1}, {"from": 131, "to": 132, "width": 1}, {"from": 133, "to": 134, "width": 1}, {"from": 135, "to": 136, "width": 1}, {"from": 137, "to": 138, "width": 1}, {"from": 139, "to": 140, "width": 1}, {"from": 141, "to": 142, "width": 1}, {"from": 143, "to": 144, "width": 1}, {"from": 145, "to": 146, "width": 1}, {"from": 147, "to": 148, "width": 1}, {"from": 149, "to": 150, "width": 1}, {"from": 151, "to": 152, "width": 1}, {"from": 153, "to": 154, "width": 1}, {"from": 155, "label": "default", "to": 156, "width": 1}, {"from": 157, "label": "default", "to": 158, "width": 1}, {"from": 159, "label": "default", "to": 160, "width": 1}, {"from": 161, "label": "", "to": 162, "width": 1}, {"from": 161, "label": "option", "to": 254, "width": 1}, {"from": 161, "label": "option", "to": 256, "width": 1}, {"from": 161, "label": "option", "to": 258, "width": 1}, {"from": 161, "label": "option", "to": 260, "width": 1}, {"from": 161, "label": "option", "to": 262, "width": 1}, {"from": 161, "label": "option", "to": 264, "width": 1}, {"from": 162, "label": "variables", "to": 163, "width": 1}, {"from": 162, "label": "variables", "to": 165, "width": 1}, {"from": 162, "label": "variables", "to": 167, "width": 1}, {"from": 162, "label": "variables", "to": 169, "width": 1}, {"from": 162, "label": "variables", "to": 171, "width": 1}, {"from": 162, "label": "variables", "to": 173, "width": 1}, {"from": 162, "label": "variables", "to": 175, "width": 1}, {"from": 162, "label": "variables", "to": 177, "width": 1}, {"from": 162, "label": "variables", "to": 179, "width": 1}, {"from": 162, "label": "variables", "to": 181, "width": 1}, {"from": 162, "label": "variables", "to": 183, "width": 1}, {"from": 162, "label": "variables", "to": 185, "width": 1}, {"from": 162, "label": "", "to": 187, "width": 1}, {"from": 162, "label": "", "to": 194, "width": 1}, {"from": 162, "label": "", "to": 212, "width": 1}, {"from": 162, "label": "", "to": 244, "width": 1}, {"from": 163, "to": 164, "width": 1}, {"from": 165, "to": 166, "width": 1}, {"from": 167, "to": 168, "width": 1}, {"from": 169, "to": 170, "width": 1}, {"from": 171, "to": 172, "width": 1}, {"from": 173, "to": 174, "width": 1}, {"from": 175, "to": 176, "width": 1}, {"from": 177, "to": 178, "width": 1}, {"from": 179, "to": 180, "width": 1}, {"from": 181, "to": 182, "width": 1}, {"from": 183, "to": 184, "width": 1}, {"from": 185, "to": 186, "width": 1}, {"from": 187, "label": "!basic", "to": 188, "width": 1}, {"from": 187, "label": "!basic", "to": 190, "width": 1}, {"from": 187, "label": "!basic", "to": 192, "width": 1}, {"from": 188, "to": 189, "width": 1}, {"from": 190, "to": 191, "width": 1}, {"from": 192, "to": 193, "width": 1}, {"from": 194, "label": "!head", "to": 195, "width": 1}, {"from": 194, "label": "!head", "to": 197, "width": 1}, {"from": 194, "label": "!head", "to": 199, "width": 1}, {"from": 194, "label": "!head", "to": 201, "width": 1}, {"from": 194, "label": "!head", "to": 203, "width": 1}, {"from": 194, "label": "!head", "to": 205, "width": 1}, {"from": 195, "to": 196, "width": 1}, {"from": 197, "to": 198, "width": 1}, {"from": 199, "to": 200, "width": 1}, {"from": 201, "to": 202, "width": 1}, {"from": 203, "to": 204, "width": 1}, {"from": 205, "label": "!basic", "to": 206, "width": 1}, {"from": 205, "label": "!basic", "to": 208, "width": 1}, {"from": 205, "label": "!basic", "to": 210, "width": 1}, {"from": 206, "to": 207, "width": 1}, {"from": 208, "to": 209, "width": 1}, {"from": 210, "to": 211, "width": 1}, {"from": 212, "label": "Verbose", "to": 213, "width": 1}, {"from": 212, "label": "Verbose", "to": 215, "width": 1}, {"from": 212, "label": "Verbose", "to": 217, "width": 1}, {"from": 212, "label": "Verbose", "to": 219, "width": 1}, {"from": 212, "label": "Verbose", "to": 221, "width": 1}, {"from": 212, "label": "Verbose", "to": 223, "width": 1}, {"from": 212, "label": "Verbose", "to": 225, "width": 1}, {"from": 212, "label": "Verbose", "to": 227, "width": 1}, {"from": 212, "label": "Verbose", "to": 229, "width": 1}, {"from": 212, "label": "Verbose", "to": 231, "width": 1}, {"from": 212, "label": "Verbose", "to": 233, "width": 1}, {"from": 212, "label": "Verbose", "to": 235, "width": 1}, {"from": 212, "label": "Verbose", "to": 237, "width": 1}, {"from": 213, "to": 214, "width": 1}, {"from": 215, "to": 216, "width": 1}, {"from": 217, "to": 218, "width": 1}, {"from": 219, "to": 220, "width": 1}, {"from": 221, "to": 222, "width": 1}, {"from": 223, "to": 224, "width": 1}, {"from": 225, "to": 226, "width": 1}, {"from": 227, "to": 228, "width": 1}, {"from": 229, "to": 230, "width": 1}, {"from": 231, "to": 232, "width": 1}, {"from": 233, "to": 234, "width": 1}, {"from": 235, "to": 236, "width": 1}, {"from": 237, "label": "!basic", "to": 238, "width": 1}, {"from": 237, "label": "!basic", "to": 240, "width": 1}, {"from": 237, "label": "!basic", "to": 242, "width": 1}, {"from": 238, "to": 239, "width": 1}, {"from": 240, "to": 241, "width": 1}, {"from": 242, "to": 243, "width": 1}, {"from": 244, "label": "FillMultiPV", "to": 245, "width": 1}, {"from": 244, "label": "FillMultiPV", "to": 248, "width": 1}, {"from": 244, "label": "FillMultiPV", "to": 250, "width": 1}, {"from": 244, "label": "FillMultiPV", "to": 252, "width": 1}, {"from": 245, "label": "head", "to": 246, "width": 1}, {"from": 246, "to": 247, "width": 1}, {"from": 248, "to": 249, "width": 1}, {"from": 250, "to": 251, "width": 1}, {"from": 252, "to": 253, "width": 1}, {"from": 254, "label": "default", "to": 255, "width": 1}, {"from": 256, "label": "default", "to": 257, "width": 1}, {"from": 258, "label": "default", "to": 259, "width": 1}, {"from": 260, "label": "default", "to": 261, "width": 1}, {"from": 262, "label": "default", "to": 263, "width": 1}, {"from": 264, "label": "default", "to": 265, "width": 1}, {"from": 266, "label": "", "to": 267, "width": 1}, {"from": 266, "label": "option", "to": 274, "width": 1}, {"from": 266, "label": "option", "to": 276, "width": 1}, {"from": 266, "label": "option", "to": 278, "width": 1}, {"from": 266, "label": "option", "to": 280, "width": 1}, {"from": 267, "label": "", "to": 268, "width": 1}, {"from": 267, "label": "", "to": 271, "width": 1}, {"from": 268, "label": "!head", "to": 269, "width": 1}, {"from": 269, "to": 270, "width": 1}, {"from": 271, "label": "Verbose", "to": 272, "width": 1}, {"from": 272, "to": 273, "width": 1}, {"from": 274, "label": "default", "to": 275, "width": 1}, {"from": 276, "label": "default", "to": 277, "width": 1}, {"from": 278, "label": "default", "to": 279, "width": 1}, {"from": 280, "label": "default", "to": 281, "width": 1}, {"from": 282, "label": "", "to": 283, "width": 1}, {"from": 282, "label": "option", "to": 302, "width": 1}, {"from": 282, "label": "option", "to": 304, "width": 1}, {"from": 282, "label": "option", "to": 306, "width": 1}, {"from": 282, "label": "option", "to": 308, "width": 1}, {"from": 282, "label": "option", "to": 310, "width": 1}, {"from": 283, "label": "", "to": 284, "width": 1}, {"from": 284, "label": "basic", "to": 285, "width": 1}, {"from": 284, "label": "basic", "to": 287, "width": 1}, {"from": 284, "label": "basic", "to": 289, "width": 1}, {"from": 284, "label": "basic", "to": 291, "width": 1}, {"from": 284, "label": "basic", "to": 293, "width": 1}, {"from": 285, "to": 286, "width": 1}, {"from": 287, "to": 288, "width": 1}, {"from": 289, "to": 290, "width": 1}, {"from": 291, "to": 292, "width": 1}, {"from": 293, "label": "fullDST", "to": 294, "width": 1}, {"from": 293, "label": "fullDST", "to": 296, "width": 1}, {"from": 293, "label": "fullDST", "to": 298, "width": 1}, {"from": 293, "label": "fullDST", "to": 300, "width": 1}, {"from": 294, "to": 295, "width": 1}, {"from": 296, "to": 297, "width": 1}, {"from": 298, "to": 299, "width": 1}, {"from": 300, "to": 301, "width": 1}, {"from": 302, "label": "default", "to": 303, "width": 1}, {"from": 304, "label": "default", "to": 305, "width": 1}, {"from": 306, "label": "default", "to": 307, "width": 1}, {"from": 308, "label": "default", "to": 309, "width": 1}, {"from": 310, "label": "default", "to": 311, "width": 1}, {"from": 312, "label": "", "to": 313, "width": 1}, {"from": 312, "label": "option", "to": 352, "width": 1}, {"from": 312, "label": "option", "to": 354, "width": 1}, {"from": 312, "label": "option", "to": 356, "width": 1}, {"from": 312, "label": "option", "to": 358, "width": 1}, {"from": 312, "label": "option", "to": 360, "width": 1}, {"from": 312, "label": "option", "to": 362, "width": 1}, {"from": 312, "label": "option", "to": 364, "width": 1}, {"from": 313, "label": "", "to": 314, "width": 1}, {"from": 313, "label": "", "to": 339, "width": 1}, {"from": 313, "label": "", "to": 345, "width": 1}, {"from": 313, "label": "", "to": 349, "width": 1}, {"from": 314, "label": "!charged", "to": 315, "width": 1}, {"from": 314, "label": "!charged", "to": 317, "width": 1}, {"from": 314, "label": "!charged", "to": 319, "width": 1}, {"from": 314, "label": "!charged", "to": 321, "width": 1}, {"from": 314, "label": "!charged", "to": 323, "width": 1}, {"from": 314, "label": "!charged", "to": 325, "width": 1}, {"from": 314, "label": "!charged", "to": 327, "width": 1}, {"from": 314, "label": "!charged", "to": 329, "width": 1}, {"from": 315, "to": 316, "width": 1}, {"from": 317, "to": 318, "width": 1}, {"from": 319, "to": 320, "width": 1}, {"from": 321, "to": 322, "width": 1}, {"from": 323, "to": 324, "width": 1}, {"from": 325, "to": 326, "width": 1}, {"from": 327, "to": 328, "width": 1}, {"from": 329, "label": "!basic", "to": 330, "width": 1}, {"from": 330, "label": "AllowDaugthersHypo", "to": 331, "width": 1}, {"from": 330, "label": "AllowDaugthersHypo", "to": 333, "width": 1}, {"from": 330, "label": "AllowDaugthersHypo", "to": 335, "width": 1}, {"from": 330, "label": "AllowDaugthersHypo", "to": 337, "width": 1}, {"from": 331, "to": 332, "width": 1}, {"from": 333, "to": 334, "width": 1}, {"from": 335, "to": 336, "width": 1}, {"from": 337, "to": 338, "width": 1}, {"from": 339, "label": "AllowBremHypo", "to": 340, "width": 1}, {"from": 340, "label": "charged", "to": 341, "width": 1}, {"from": 340, "label": "charged", "to": 343, "width": 1}, {"from": 341, "to": 342, "width": 1}, {"from": 343, "to": 344, "width": 1}, {"from": 345, "label": "AllowChargedHypo", "to": 346, "width": 1}, {"from": 346, "label": "charged", "to": 347, "width": 1}, {"from": 347, "to": 348, "width": 1}, {"from": 349, "label": "AllowDaugthersHypo", "to": 350, "width": 1}, {"from": 350, "to": 351, "width": 1}, {"from": 352, "label": "default", "to": 353, "width": 1}, {"from": 354, "label": "default", "to": 355, "width": 1}, {"from": 356, "label": "default", "to": 357, "width": 1}, {"from": 358, "label": "default", "to": 359, "width": 1}, {"from": 360, "label": "default", "to": 361, "width": 1}, {"from": 362, "label": "default", "to": 363, "width": 1}, {"from": 364, "label": "default", "to": 365, "width": 1}, {"from": 366, "label": "", "to": 367, "width": 1}, {"from": 366, "label": "option", "to": 376, "width": 1}, {"from": 366, "label": "option", "to": 378, "width": 1}, {"from": 366, "label": "option", "to": 380, "width": 1}, {"from": 367, "label": "variables", "to": 368, "width": 1}, {"from": 367, "label": "variables", "to": 370, "width": 1}, {"from": 367, "label": "variables", "to": 372, "width": 1}, {"from": 367, "label": "variables", "to": 374, "width": 1}, {"from": 368, "to": 369, "width": 1}, {"from": 370, "to": 371, "width": 1}, {"from": 372, "to": 373, "width": 1}, {"from": 374, "to": 375, "width": 1}, {"from": 376, "label": "default", "to": 377, "width": 1}, {"from": 378, "label": "default", "to": 379, "width": 1}, {"from": 380, "label": "default", "to": 381, "width": 1}, {"from": 382, "label": "", "to": 383, "width": 1}, {"from": 382, "label": "option", "to": 388, "width": 1}, {"from": 382, "label": "option", "to": 390, "width": 1}, {"from": 382, "label": "option", "to": 392, "width": 1}, {"from": 382, "label": "option", "to": 394, "width": 1}, {"from": 382, "label": "option", "to": 396, "width": 1}, {"from": 382, "label": "option", "to": 398, "width": 1}, {"from": 383, "label": "variables", "to": 384, "width": 1}, {"from": 383, "label": "variables", "to": 386, "width": 1}, {"from": 384, "to": 385, "width": 1}, {"from": 386, "to": 387, "width": 1}, {"from": 388, "label": "default", "to": 389, "width": 1}, {"from": 390, "label": "default", "to": 391, "width": 1}, {"from": 392, "label": "default", "to": 393, "width": 1}, {"from": 394, "label": "default", "to": 395, "width": 1}, {"from": 396, "label": "default", "to": 397, "width": 1}, {"from": 398, "label": "default", "to": 399, "width": 1}, {"from": 400, "label": "", "to": 401, "width": 1}, {"from": 400, "label": "option", "to": 411, "width": 1}, {"from": 400, "label": "option", "to": 413, "width": 1}, {"from": 400, "label": "option", "to": 415, "width": 1}, {"from": 401, "label": "", "to": 402, "width": 1}, {"from": 402, "label": "charged,head,!basic", "to": 403, "width": 1}, {"from": 402, "label": "charged,head,!basic", "to": 405, "width": 1}, {"from": 402, "label": "charged,head,!basic", "to": 407, "width": 1}, {"from": 402, "label": "charged,head,!basic", "to": 409, "width": 1}, {"from": 403, "to": 404, "width": 1}, {"from": 405, "to": 406, "width": 1}, {"from": 407, "to": 408, "width": 1}, {"from": 409, "to": 410, "width": 1}, {"from": 411, "label": "default", "to": 412, "width": 1}, {"from": 413, "label": "default", "to": 414, "width": 1}, {"from": 415, "label": "default", "to": 416, "width": 1}, {"from": 417, "label": "", "to": 418, "width": 1}, {"from": 417, "label": "option", "to": 426, "width": 1}, {"from": 417, "label": "option", "to": 428, "width": 1}, {"from": 417, "label": "option", "to": 430, "width": 1}, {"from": 418, "label": "", "to": 419, "width": 1}, {"from": 419, "label": "head", "to": 420, "width": 1}, {"from": 419, "label": "head", "to": 422, "width": 1}, {"from": 419, "label": "head", "to": 424, "width": 1}, {"from": 420, "to": 421, "width": 1}, {"from": 422, "to": 423, "width": 1}, {"from": 424, "to": 425, "width": 1}, {"from": 426, "label": "default", "to": 427, "width": 1}, {"from": 428, "label": "default", "to": 429, "width": 1}, {"from": 430, "label": "default", "to": 431, "width": 1}, {"from": 432, "label": "", "to": 433, "width": 1}, {"from": 432, "label": "option", "to": 455, "width": 1}, {"from": 432, "label": "option", "to": 457, "width": 1}, {"from": 432, "label": "option", "to": 459, "width": 1}, {"from": 433, "label": "", "to": 434, "width": 1}, {"from": 434, "label": "!basic,head", "to": 435, "width": 1}, {"from": 434, "label": "!basic,head", "to": 437, "width": 1}, {"from": 434, "label": "!basic,head", "to": 439, "width": 1}, {"from": 434, "label": "!basic,head", "to": 441, "width": 1}, {"from": 434, "label": "!basic,head", "to": 443, "width": 1}, {"from": 434, "label": "!basic,head", "to": 445, "width": 1}, {"from": 434, "label": "!basic,head", "to": 447, "width": 1}, {"from": 434, "label": "!basic,head", "to": 449, "width": 1}, {"from": 434, "label": "!basic,head", "to": 451, "width": 1}, {"from": 434, "label": "!basic,head", "to": 453, "width": 1}, {"from": 435, "to": 436, "width": 1}, {"from": 437, "to": 438, "width": 1}, {"from": 439, "to": 440, "width": 1}, {"from": 441, "to": 442, "width": 1}, {"from": 443, "to": 444, "width": 1}, {"from": 445, "to": 446, "width": 1}, {"from": 447, "to": 448, "width": 1}, {"from": 449, "to": 450, "width": 1}, {"from": 451, "to": 452, "width": 1}, {"from": 453, "to": 454, "width": 1}, {"from": 455, "label": "default", "to": 456, "width": 1}, {"from": 457, "label": "default", "to": 458, "width": 1}, {"from": 459, "label": "default", "to": 460, "width": 1}, {"from": 461, "label": "", "to": 462, "width": 1}, {"from": 461, "label": "option", "to": 466, "width": 1}, {"from": 461, "label": "option", "to": 468, "width": 1}, {"from": 461, "label": "option", "to": 470, "width": 1}, {"from": 461, "label": "option", "to": 472, "width": 1}, {"from": 462, "label": "", "to": 463, "width": 1}, {"from": 463, "label": "head", "to": 464, "width": 1}, {"from": 464, "to": 465, "width": 1}, {"from": 466, "label": "default", "to": 467, "width": 1}, {"from": 468, "label": "default", "to": 469, "width": 1}, {"from": 470, "label": "default", "to": 471, "width": 1}, {"from": 472, "label": "default", "to": 473, "width": 1}, {"from": 474, "label": "", "to": 475, "width": 1}, {"from": 474, "label": "option", "to": 489, "width": 1}, {"from": 474, "label": "option", "to": 491, "width": 1}, {"from": 474, "label": "option", "to": 493, "width": 1}, {"from": 475, "label": "", "to": 476, "width": 1}, {"from": 476, "label": "!basic", "to": 477, "width": 1}, {"from": 476, "label": "!basic", "to": 479, "width": 1}, {"from": 476, "label": "!basic", "to": 481, "width": 1}, {"from": 476, "label": "!basic", "to": 483, "width": 1}, {"from": 476, "label": "!basic", "to": 485, "width": 1}, {"from": 476, "label": "!basic", "to": 487, "width": 1}, {"from": 477, "to": 478, "width": 1}, {"from": 479, "to": 480, "width": 1}, {"from": 481, "to": 482, "width": 1}, {"from": 483, "to": 484, "width": 1}, {"from": 485, "to": 486, "width": 1}, {"from": 487, "to": 488, "width": 1}, {"from": 489, "label": "default", "to": 490, "width": 1}, {"from": 491, "label": "default", "to": 492, "width": 1}, {"from": 493, "label": "default", "to": 494, "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": true,
+        "filter": [
+            "physics"
+        ]
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "forceAtlas2Based": {
+            "avoidOverlap": 0,
+            "centralGravity": 0.01,
+            "damping": 0.4,
+            "gravitationalConstant": -31,
+            "springConstant": 0.08,
+            "springLength": 100
+        },
+        "solver": "forceAtlas2Based",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
