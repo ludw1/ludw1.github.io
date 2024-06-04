@@ -1,0 +1,637 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 900px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="0">0</option>
+                                
+                                    <option value="1">1</option>
+                                
+                                    <option value="14">14</option>
+                                
+                                    <option value="15">15</option>
+                                
+                                    <option value="2">2</option>
+                                
+                                    <option value="7">7</option>
+                                
+                                    <option value="11">11</option>
+                                
+                                    <option value="3">3</option>
+                                
+                                    <option value="6">6</option>
+                                
+                                    <option value="4">4</option>
+                                
+                                    <option value="5">5</option>
+                                
+                                    <option value="8">8</option>
+                                
+                                    <option value="9">9</option>
+                                
+                                    <option value="10">10</option>
+                                
+                                    <option value="12">12</option>
+                                
+                                    <option value="13">13</option>
+                                
+                                    <option value="16">16</option>
+                                
+                                    <option value="17">17</option>
+                                
+                                    <option value="18">18</option>
+                                
+                                    <option value="19">19</option>
+                                
+                                    <option value="20">20</option>
+                                
+                                    <option value="21">21</option>
+                                
+                                    <option value="22">22</option>
+                                
+                                    <option value="24">24</option>
+                                
+                                    <option value="26">26</option>
+                                
+                                    <option value="27">27</option>
+                                
+                                    <option value="28">28</option>
+                                
+                                    <option value="33">33</option>
+                                
+                                    <option value="35">35</option>
+                                
+                                    <option value="37">37</option>
+                                
+                                    <option value="23">23</option>
+                                
+                                    <option value="25">25</option>
+                                
+                                    <option value="29">29</option>
+                                
+                                    <option value="30">30</option>
+                                
+                                    <option value="31">31</option>
+                                
+                                    <option value="32">32</option>
+                                
+                                    <option value="34">34</option>
+                                
+                                    <option value="36">36</option>
+                                
+                                    <option value="38">38</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"basic": 0, "charged": 1, "color": "red", "head": 1, "id": 0, "label": "B+", "level": 0, "physics": false, "shape": "dot", "size": 15, "title": "B+", "x": -20, "y": -1000}, {"basic": 0, "charged": 0, "color": "red", "head": 0, "id": 1, "label": "J/psi(1S)", "level": 1, "physics": false, "shape": "dot", "size": 15, "title": "J/psi(1S)", "x": -40, "y": -800}, {"basic": 1, "charged": 1, "color": "red", "head": 0, "id": 14, "label": "pi+", "level": 1, "physics": false, "shape": "dot", "size": 15, "title": "pi+", "x": 0, "y": -800}, {"color": "blue", "id": 15, "label": "LoKi__Hybrid__TupleTool", "level": 1, "shape": "dot", "size": 10, "title": "LoKi__Hybrid__TupleTool"}, {"basic": 0, "charged": 1, "color": "red", "head": 0, "id": 2, "label": "D*(2010)+", "level": 2, "physics": false, "shape": "dot", "size": 15, "title": "D*(2010)+", "x": -60, "y": -600}, {"basic": 0, "charged": 1, "color": "red", "head": 0, "id": 7, "label": "D-", "level": 2, "physics": false, "shape": "dot", "size": 15, "title": "D-", "x": 0, "y": -600}, {"basic": 0, "charged": 0, "color": "red", "head": 0, "id": 11, "label": "K*(892)~0", "level": 2, "physics": false, "shape": "dot", "size": 15, "title": "K*(892)~0", "x": 60, "y": -600}, {"basic": 0, "charged": 0, "color": "red", "head": 0, "id": 3, "label": "D0", "level": 3, "physics": false, "shape": "dot", "size": 15, "title": "D0", "x": -140, "y": -400}, {"basic": 1, "charged": 1, "color": "red", "head": 0, "id": 6, "label": "pi+", "level": 3, "physics": false, "shape": "dot", "size": 15, "title": "pi+", "x": 0, "y": -400}, {"basic": 1, "charged": 1, "color": "red", "head": 0, "id": 4, "label": "pi+", "level": 4, "physics": false, "shape": "dot", "size": 15, "title": "pi+", "x": -40, "y": -200}, {"basic": 1, "charged": 1, "color": "red", "head": 0, "id": 5, "label": "pi-", "level": 4, "physics": false, "shape": "dot", "size": 15, "title": "pi-", "x": 0, "y": -200}, {"basic": 1, "charged": 1, "color": "red", "head": 0, "id": 8, "label": "K-", "level": 3, "physics": false, "shape": "dot", "size": 15, "title": "K-", "x": 140, "y": -400}, {"basic": 1, "charged": 1, "color": "red", "head": 0, "id": 9, "label": "pi+", "level": 3, "physics": false, "shape": "dot", "size": 15, "title": "pi+", "x": 280, "y": -400}, {"basic": 1, "charged": 1, "color": "red", "head": 0, "id": 10, "label": "pi-", "level": 3, "physics": false, "shape": "dot", "size": 15, "title": "pi-", "x": 420, "y": -400}, {"basic": 1, "charged": 1, "color": "red", "head": 0, "id": 12, "label": "K-", "level": 3, "physics": false, "shape": "dot", "size": 15, "title": "K-", "x": 560, "y": -400}, {"basic": 1, "charged": 1, "color": "red", "head": 0, "id": 13, "label": "pi+", "level": 3, "physics": false, "shape": "dot", "size": 15, "title": "pi+", "x": 700, "y": -400}, {"color": "orange", "id": 16, "label": "Factory", "level": 2, "optval": "LoKi::Hybrid::Tool/HybridFactory:PUBLIC", "shape": "dot", "size": 10, "title": "LoKi::Hybrid::Tool/HybridFactory:PUBLIC"}, {"color": "orange", "id": 17, "label": "Variables", "level": 2, "optval": "{\u0027Mass\u0027: \u0027M\u0027, \u0027pt\u0027: \u0027PT\u0027, \u0027dz\u0027: \u0027DZ\u0027, \u0027dira\u0027: \u0027BPVDIRA\u0027, \u0027max_pt\u0027: \u0027MAXTREE(ISBASIC \u0026 HASTRACK, PT, -1)\u0027}", "shape": "dot", "size": 10, "title": "{\u0027Mass\u0027: \u0027M\u0027, \u0027pt\u0027: \u0027PT\u0027, \u0027dz\u0027: \u0027DZ\u0027, \u0027dira\u0027: \u0027BPVDIRA\u0027, \u0027max_pt\u0027: \u0027MAXTREE(ISBASIC \u0026 HASTRACK, PT, -1)\u0027}"}, {"color": "orange", "id": 18, "label": "BoolVariables", "level": 2, "optval": "{}", "shape": "dot", "size": 10, "title": "{}"}, {"color": "orange", "id": 19, "label": "FloatVariables", "level": 2, "optval": "{\u0027mass\u0027: \u0027M\u0027, \u0027pt\u0027: \u0027PT\u0027, \u0027vtx_chi2\u0027: \u0027VFASPF(VCHI2)\u0027}", "shape": "dot", "size": 10, "title": "{\u0027mass\u0027: \u0027M\u0027, \u0027pt\u0027: \u0027PT\u0027, \u0027vtx_chi2\u0027: \u0027VFASPF(VCHI2)\u0027}"}, {"color": "orange", "id": 20, "label": "IntVariables", "level": 2, "optval": "{}", "shape": "dot", "size": 10, "title": "{}"}, {"color": "orange", "id": 21, "label": "Preambulo", "level": 2, "optval": "[\u0027DZ = VFASPF(VZ) - BPV(VZ)\u0027, \u0027TRACK_MAX_PT = MAXTREE(ISBASIC \u0026 HASTRACK, PT, -1)\u0027]", "shape": "dot", "size": 10, "title": "[\u0027DZ = VFASPF(VZ) - BPV(VZ)\u0027, \u0027TRACK_MAX_PT = MAXTREE(ISBASIC \u0026 HASTRACK, PT, -1)\u0027]"}, {"color": "green", "expl": "M", "id": 22, "label": "Mass", "level": 5, "shape": "dot", "size": 10, "title": "M"}, {"color": "green", "expl": "PT", "id": 24, "label": "pt", "level": 5, "shape": "dot", "size": 10, "title": "PT"}, {"color": "green", "expl": "DZ", "id": 26, "label": "dz", "level": 5, "shape": "dot", "size": 10, "title": "DZ"}, {"color": "green", "expl": "BPVDIRA", "id": 27, "label": "dira", "level": 5, "shape": "dot", "size": 10, "title": "BPVDIRA"}, {"color": "green", "expl": "MAXTREE(ISBASIC \u0026 HASTRACK, PT, -1)", "id": 28, "label": "max_pt", "level": 5, "shape": "dot", "size": 10, "title": "MAXTREE(ISBASIC \u0026 HASTRACK, PT, -1)"}, {"color": "green", "expl": "M", "id": 33, "label": "mass", "level": 5, "shape": "dot", "size": 10, "title": "M"}, {"color": "green", "expl": "PT", "id": 35, "label": "pt", "level": 5, "shape": "dot", "size": 10, "title": "PT"}, {"color": "green", "expl": "VFASPF(VCHI2)", "id": 37, "label": "vtx_chi2", "level": 5, "shape": "dot", "size": 10, "title": "VFASPF(VCHI2)"}, {"color": "mint", "expl": "The simple function which returns the kinematical mass of the particle , using Gaudi::LorentzVector::Mass method:", "id": 23, "label": "M", "level": 4, "shape": "dot", "size": 10, "title": "The simple function which returns the kinematical mass of the particle , using Gaudi::LorentzVector::Mass method:"}, {"color": "mint", "expl": "The simple function which returns the particle\u0027s transverse momentum:", "id": 25, "label": "PT", "level": 4, "shape": "dot", "size": 10, "title": "The simple function which returns the particle\u0027s transverse momentum:"}, {"color": "mint", "expl": "The function with scans the decay tree and return the maximal value of another function, evaluated for the (grand)daughter particles which satisfy the certain criteria", "id": 29, "label": "MAXTREE", "level": 4, "shape": "dot", "size": 10, "title": "The function with scans the decay tree and return the maximal value of another function, evaluated for the (grand)daughter particles which satisfy the certain criteria"}, {"color": "mint", "expl": "The predicate which checks if the particle is a basic particle , LHCb::Particle::isBasic :", "id": 30, "label": "ISBASIC", "level": 4, "shape": "dot", "size": 10, "title": "The predicate which checks if the particle is a basic particle , LHCb::Particle::isBasic :"}, {"color": "mint", "expl": "Trivial predicate to check the validity of track for particle: It acks according to the chain Particle-\u003eProroParticle-\u003eTrack.", "id": 31, "label": "HASTRACK", "level": 4, "shape": "dot", "size": 10, "title": "Trivial predicate to check the validity of track for particle: It acks according to the chain Particle-\u003eProroParticle-\u003eTrack."}, {"color": "mint", "expl": "The simple function which returns the particle\u0027s transverse momentum:", "id": 32, "label": "PT", "level": 4, "shape": "dot", "size": 10, "title": "The simple function which returns the particle\u0027s transverse momentum:"}, {"color": "mint", "expl": "The simple function which returns the kinematical mass of the particle , using Gaudi::LorentzVector::Mass method:", "id": 34, "label": "M", "level": 4, "shape": "dot", "size": 10, "title": "The simple function which returns the kinematical mass of the particle , using Gaudi::LorentzVector::Mass method:"}, {"color": "mint", "expl": "The simple function which returns the particle\u0027s transverse momentum:", "id": 36, "label": "PT", "level": 4, "shape": "dot", "size": 10, "title": "The simple function which returns the particle\u0027s transverse momentum:"}, {"color": "mint", "expl": "The adapter function, which applies the vertex function to the end vertex of the given particle:", "id": 38, "label": "VFASPF", "level": 4, "shape": "dot", "size": 10, "title": "The adapter function, which applies the vertex function to the end vertex of the given particle:"}]);
+                  edges = new vis.DataSet([{"from": 0, "label": "decays", "to": 1, "width": 1}, {"from": 0, "label": "decays", "to": 14, "width": 1}, {"from": 0, "to": 15, "width": 1}, {"from": 1, "label": "decays", "to": 2, "width": 1}, {"from": 1, "label": "decays", "to": 7, "width": 1}, {"from": 1, "label": "decays", "to": 11, "width": 1}, {"from": 2, "label": "decays", "to": 3, "width": 1}, {"from": 2, "label": "decays", "to": 6, "width": 1}, {"from": 3, "label": "decays", "to": 4, "width": 1}, {"from": 3, "label": "decays", "to": 5, "width": 1}, {"from": 7, "label": "decays", "to": 8, "width": 1}, {"from": 7, "label": "decays", "to": 9, "width": 1}, {"from": 7, "label": "decays", "to": 10, "width": 1}, {"from": 11, "label": "decays", "to": 12, "width": 1}, {"from": 11, "label": "decays", "to": 13, "width": 1}, {"from": 15, "to": 16, "width": 1}, {"from": 15, "to": 17, "width": 1}, {"from": 15, "to": 18, "width": 1}, {"from": 15, "to": 19, "width": 1}, {"from": 15, "to": 20, "width": 1}, {"from": 15, "to": 21, "width": 1}, {"from": 17, "to": 22, "width": 1}, {"from": 17, "to": 24, "width": 1}, {"from": 17, "to": 26, "width": 1}, {"from": 17, "to": 27, "width": 1}, {"from": 17, "to": 28, "width": 1}, {"from": 19, "to": 33, "width": 1}, {"from": 19, "to": 35, "width": 1}, {"from": 19, "to": 37, "width": 1}, {"from": 22, "to": 23, "width": 1}, {"from": 24, "to": 25, "width": 1}, {"from": 28, "to": 29, "width": 1}, {"from": 28, "to": 30, "width": 1}, {"from": 28, "to": 31, "width": 1}, {"from": 28, "to": 32, "width": 1}, {"from": 33, "to": 34, "width": 1}, {"from": 35, "to": 36, "width": 1}, {"from": 37, "to": 38, "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "forceAtlas2Based": {
+            "avoidOverlap": 1,
+            "centralGravity": 0.01,
+            "damping": 0.4,
+            "gravitationalConstant": -31,
+            "springConstant": 0.08,
+            "springLength": 100
+        },
+        "solver": "forceAtlas2Based",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
